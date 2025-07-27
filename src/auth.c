@@ -1,31 +1,35 @@
 #include <termios.h>
 #include "header.h"
 
+// reads from users.txt
 char *USERS = "./data/users.txt";
 
 void loginMenu(char a[50], char pass[50])
 {
+    // terminal settings structs 
     struct termios oflags, nflags;
 
-    system("clear");
+    system("clear"); // claer screen
     printf("\n\n\n\t\t\t\t   Bank Management System\n\t\t\t\t\t User Login:");
-    scanf("%s", a);
+    scanf("%s", a); // read username, visible input
 
-    // disabling echo
+    // disabling echo (saves current terminal settings)
     tcgetattr(fileno(stdin), &oflags);
-    nflags = oflags;
-    nflags.c_lflag &= ~ECHO;
-    nflags.c_lflag |= ECHONL;
-
+    // modifies settings to hide password input
+    nflags = oflags; // copy original settings
+    nflags.c_lflag &= ~ECHO; // disable echo, turn off character display
+    nflags.c_lflag |= ECHONL; // enable newline echo, show ENTER
+    // apply the new settings
     if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0)
     {
         perror("tcsetattr");
         return exit(1);
     }
     printf("\n\n\n\n\n\t\t\t\tEnter the password to login:");
+    // read password (now hidden)
     scanf("%s", pass);
 
-    // restore terminal
+    // restore original terminal settings
     if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0)
     {
         perror("tcsetattr");
@@ -44,7 +48,9 @@ const char *getPassword(struct User u)
         exit(1);
     }
 
-    while (fscanf(fp, "%s %s", userChecker.name, userChecker.password) != EOF)
+    // fscanf needs to write data into the variables
+    // In C, array names (like char name[50]) are automatically treated as pointers to their first element.
+    while (fscanf(fp, "%d %s %s", &userChecker.id, userChecker.name, userChecker.password) != EOF)
     {
         if (strcmp(userChecker.name, u.name) == 0)
         {
@@ -56,4 +62,63 @@ const char *getPassword(struct User u)
 
     fclose(fp);
     return "no user found";
+}
+
+void registerMenu(char a[50], char pass[50])
+{
+    struct termios oflags, nflags;
+
+    system("clear");
+    printf("\n\n\n\t\t\t\t   Bank Management System\n\t\t\t\t\t User Registration:");
+
+    // Get username
+    printf("\nEnter username: ");
+    scanf("%s", a);
+
+    // disabling echo (saves current terminal settings)
+    tcgetattr(fileno(stdin), &oflags);
+    // modifies settings to hide password input
+    nflags = oflags;          // copy original settings
+    nflags.c_lflag &= ~ECHO;  // disable echo, turn off character display
+    nflags.c_lflag |= ECHONL; // enable newline echo, show ENTER
+    // apply the new settings
+    if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0)
+    {
+        perror("tcsetattr");
+        return exit(1);
+    }
+
+    printf("\nEnter a password: ");
+    // read password (now hidden)
+    scanf("%s", pass);
+
+    // restore original terminal settings
+    if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0)
+    {
+        perror("tcsetattr");
+        return exit(1);
+    }
+
+    // Check if user already exists
+    FILE *fp = fopen("./data/users.txt", "r");
+    if (fp == NULL)
+    {
+        printf("Error opening user file!\n");
+
+        exit(1);
+    }
+
+    struct User userChecker;
+    while (fscanf(fp, "%d %s %s", &userChecker.id, userChecker.name, userChecker.password) !=EOF)
+    {
+        if (strcmp(userChecker.name, a) == 0)
+        {
+            printf("\nUser '%s' already exists!\n Please use another username.\n", a);
+            fclose(fp);
+            return; // Exit the function if user exists
+        }
+    }
+    fclose(fp); 
+
+    printf("\nUser '%s' registered successfully!\n", a);
 }
